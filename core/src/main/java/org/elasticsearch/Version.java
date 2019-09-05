@@ -150,7 +150,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_6_1_4 = new Version(V_6_1_4_ID, org.apache.lucene.util.Version.LUCENE_7_1_0);
     public static final int V_6_1_5_ID = 6010599;
     public static final Version V_6_1_5 = new Version(V_6_1_5_ID, org.apache.lucene.util.Version.LUCENE_7_1_0);
-    public static final Version CURRENT = V_6_1_5;
+    public static final Version CURRENT = V_6_1_4;
 
     static {
         assert CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) : "Version must be upgraded to ["
