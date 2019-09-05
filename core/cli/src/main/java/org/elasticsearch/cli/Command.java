@@ -81,6 +81,7 @@ public abstract class Command implements Closeable {
                     }
                 }
             });
+            //添加了关闭钩子，
             Runtime.getRuntime().addShutdownHook(shutdownHookThread);
         }
 

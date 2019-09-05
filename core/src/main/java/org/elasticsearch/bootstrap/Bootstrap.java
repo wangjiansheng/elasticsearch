@@ -85,6 +85,9 @@ final class Bootstrap {
                 }
             }
         }, "elasticsearch[keepAlive/" + Version.CURRENT + "]");
+        //这个线程在Bootstrap初始化的时候就已经实例化了，
+        // 该线程创建了一个计数为1的CountDownLatch，
+        // 目的是在启动完成后能顺利添加关闭钩子
         keepAliveThread.setDaemon(false);
         // keep this thread alive (non daemon thread) until we shutdown
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -162,12 +165,12 @@ final class Bootstrap {
     private void setup(boolean addShutdownHook, Environment environment) throws BootstrapException {
         Settings settings = environment.settings();
 
-        try {
+        try {//通过environment生成本地插件控制器
             spawner.spawnNativePluginControllers(environment);
         } catch (IOException e) {
             throw new BootstrapException(e);
         }
-
+        //初始化本地资源
         initializeNatives(
                 environment.tmpFile(),
                 BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
@@ -175,8 +178,9 @@ final class Bootstrap {
                 BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
 
         // initialize probes before the security manager is installed
+        //在安全管理器安装之前初始化探针
         initializeProbes();
-
+        //添加关闭钩子
         if (addShutdownHook) {
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
@@ -193,22 +197,23 @@ final class Bootstrap {
         }
 
         try {
-            // look for jar hell
+            // look for jar hell 检查jar重复
             JarHell.checkJarHell();
         } catch (IOException | URISyntaxException e) {
             throw new BootstrapException(e);
         }
 
         // Log ifconfig output before SecurityManager is installed
+        //在安全管理器安装之前配置日志输出器
         IfConfig.logIfNecessary();
 
         // install SM after natives, shutdown hooks, etc.
-        try {
+        try {//安装安全管理器
             Security.configure(environment, BootstrapSettings.SECURITY_FILTER_BAD_DEFAULTS_SETTING.get(settings));
         } catch (IOException | NoSuchAlgorithmException e) {
             throw new BootstrapException(e);
         }
-
+        // 通过参数environment实例化Node
         node = new Node(environment) {
             @Override
             protected void validateNodeBeforeAcceptingRequests(
@@ -273,6 +278,16 @@ final class Bootstrap {
     /**
      * This method is invoked by {@link Elasticsearch#main(String[])} to startup elasticsearch.
      */
+    //完成了elasticsearch的启动
+
+    /**
+     * foreground：标识elasticsearch是否是作为后台守护进程启动的，
+     * pidFile：通过parser解析args后得到，实际是解析了默认命令行参数（verbose
+     * ，E,silent，version，help，quiet，daemonize，pidfile）
+     * quiet：同上
+     * initialEnv：Environment实例化的环境参数对象，保存了一些类似于repoFile，configFile，pluginsFile
+     * ，binFile，libFile等参数。
+     */
     static void init(
             final boolean foreground,
             final Path pidFile,
@@ -280,6 +295,14 @@ final class Bootstrap {
             final Environment initialEnv) throws BootstrapException, NodeValidationException, UserException {
         // force the class initializer for BootstrapInfo to run before
         // the security manager is installed
+      /*  主要工作
+
+            首先会实例化一个Bootstrap对象
+        配置log输出器
+        创建pid文件，会在磁盘上持久化一个记录应用pid的文件
+            通过参数foreground和quiet来控制日志输出
+        调用Bootstrap的setup方法和start方法*/
+
         BootstrapInfo.init();
 
         INSTANCE = new Bootstrap();
@@ -292,13 +315,13 @@ final class Bootstrap {
             throw new BootstrapException(e);
         }
         if (environment.pidFile() != null) {
-            try {
+            try {//  创建pid文件，会在磁盘上持久化一个记录应用pid的文件
                 PidFile.create(environment.pidFile(), true);
             } catch (IOException e) {
                 throw new BootstrapException(e);
             }
         }
-
+        //通过参数foreground和quiet来控制日志输出
         final boolean closeStandardStreams = (foreground == false) || quiet;
         try {
             if (closeStandardStreams) {
@@ -318,7 +341,7 @@ final class Bootstrap {
             // setDefaultUncaughtExceptionHandler
             Thread.setDefaultUncaughtExceptionHandler(
                 new ElasticsearchUncaughtExceptionHandler(() -> Node.NODE_NAME_SETTING.get(environment.settings())));
-
+            //调用Bootstrap的setup方法和start方法
             INSTANCE.setup(true, environment);
 
             try {
@@ -327,7 +350,12 @@ final class Bootstrap {
             } catch (IOException e) {
                 throw new BootstrapException(e);
             }
-
+            //调用start方法
+           /*
+           主要工作：
+            启动已经实例化的Node
+            启动keepAliveThread 线程，这个线程在Bootstrap初始化的时候就已经实例化了
+            ，该线程创建了一个计数为1的CountDownLatch，目的是在启动完成后能顺利添加关闭钩子*/
             INSTANCE.start();
 
             if (closeStandardStreams) {

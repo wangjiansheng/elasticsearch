@@ -80,6 +80,7 @@ class Elasticsearch extends EnvironmentAwareCommand {
                 // grant all permissions so that we can later set the security manager to the one that we want
             }
         });
+        //然后配置日志输出器，
         LogConfigurator.registerErrorListener();
         final Elasticsearch elasticsearch = new Elasticsearch();
         int status = main(args, elasticsearch, Terminal.DEFAULT);
@@ -88,6 +89,7 @@ class Elasticsearch extends EnvironmentAwareCommand {
         }
     }
 
+    //里面添加了关闭钩子，
     static int main(final String[] args, final Elasticsearch elasticsearch, final Terminal terminal) throws Exception {
         return elasticsearch.main(args, terminal);
     }
@@ -114,10 +116,11 @@ class Elasticsearch extends EnvironmentAwareCommand {
             throw new UserException(ExitCodes.CONFIG, e.getMessage());
         }
     }
-
+//完成了elasticsearch的启动
     void init(final boolean daemonize, final Path pidFile, final boolean quiet, Environment initialEnv)
         throws NodeValidationException, UserException {
         try {
+            //完成了elasticsearch的启动
             Bootstrap.init(!daemonize, pidFile, quiet, initialEnv);
         } catch (BootstrapException | RuntimeException e) {
             // format exceptions to the console in a special way
