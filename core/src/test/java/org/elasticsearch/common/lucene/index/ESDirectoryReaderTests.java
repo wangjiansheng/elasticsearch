@@ -32,9 +32,10 @@ import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 
-/** Simple tests for this filterreader */
+/** Simple tests for this filterreader
+ * 这个过滤器的简单测试*/
 public class ESDirectoryReaderTests extends ESTestCase {
-    
+
     /** Test that core cache key (needed for NRT) is working */
     public void testCoreCacheKey() throws Exception {
         Directory dir = newDirectory();
@@ -42,7 +43,7 @@ public class ESDirectoryReaderTests extends ESTestCase {
         iwc.setMaxBufferedDocs(100);
         iwc.setMergePolicy(NoMergePolicy.INSTANCE);
         IndexWriter iw = new IndexWriter(dir, iwc);
-        
+
         // add two docs, id:0 and id:1
         Document doc = new Document();
         Field idField = new StringField("id", "", Field.Store.NO);
@@ -51,7 +52,7 @@ public class ESDirectoryReaderTests extends ESTestCase {
         iw.addDocument(doc);
         idField.setStringValue("1");
         iw.addDocument(doc);
-        
+
         // open reader
         ShardId shardId = new ShardId("fake", "_na_", 1);
         DirectoryReader ir = ElasticsearchDirectoryReader.wrap(DirectoryReader.open(iw), shardId);
@@ -61,7 +62,7 @@ public class ESDirectoryReaderTests extends ESTestCase {
         // delete id:0 and reopen
         iw.deleteDocuments(new Term("id", "0"));
         DirectoryReader ir2 = DirectoryReader.openIfChanged(ir);
-        
+
         // we should have the same cache key as before
         assertEquals(1, ir2.numDocs());
         assertEquals(1, ir2.leaves().size());
